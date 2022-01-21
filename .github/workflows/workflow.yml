@@ -1,1 +1,63 @@
+name: SSE CI/CD
 
+on: [push]
+
+jobs:
+  style_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8.10'
+      - name: "Install black"
+        run: pip install --user black
+      - name: "Run black"
+        run: black --check .
+        
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8.10'
+      - name: "Install pytest"
+        run: pip install --user pytest
+      - name: "Install coverage"
+        run: pip install --user coverage
+      - name: "Install numpy"
+        run: pip install --user numpy
+      - name: "Install matplotlib"
+        run: pip install --user matplotlib
+      - name: "Run test with coverage"
+        run: coverage run -m pytest
+      - name: "Archive coverage report"
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage_intermediate
+          path: .coverage
+          retention-days: 1
+        
+  coverage_report:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8.10'
+      - name: "Install coverage"
+        run: pip install --user coverage
+      - name: "Retrieve coverage report"
+        uses: actions/download-artifact@v2
+        with:
+          name: coverage_intermediate
+      - name: "Convert .coverage to xml"
+        run: coverage xml
+      - name: "Archive report"
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage_report
+          path: coverage.xml
+          retention-days: 14
